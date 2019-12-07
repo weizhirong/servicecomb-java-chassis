@@ -17,14 +17,16 @@
 
 package org.apache.servicecomb.swagger.generator.core.processor.annotation;
 
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.servicecomb.swagger.generator.core.ClassAnnotationProcessor;
-import org.apache.servicecomb.swagger.generator.core.SwaggerGenerator;
-import org.springframework.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.servicecomb.swagger.SwaggerUtils;
+import org.apache.servicecomb.swagger.generator.ClassAnnotationProcessor;
+import org.apache.servicecomb.swagger.generator.SwaggerGenerator;
 
 import io.swagger.annotations.SwaggerDefinition;
 import io.swagger.models.Contact;
@@ -36,17 +38,25 @@ import io.swagger.models.Swagger;
 import io.swagger.models.Tag;
 import io.swagger.util.BaseReaderUtils;
 
-public class SwaggerDefinitionProcessor implements ClassAnnotationProcessor {
+public class SwaggerDefinitionProcessor implements ClassAnnotationProcessor<SwaggerDefinition> {
   @Override
-  public void process(Object annotation, SwaggerGenerator swaggerGenerator) {
-    SwaggerDefinition definitionAnnotation = (SwaggerDefinition) annotation;
+  public Type getProcessType() {
+    return SwaggerDefinition.class;
+  }
+
+  @Override
+  public void process(SwaggerGenerator swaggerGenerator, SwaggerDefinition definitionAnnotation) {
     Swagger swagger = swaggerGenerator.getSwagger();
 
-    swaggerGenerator.setBasePath(definitionAnnotation.basePath());
-    swagger.setHost(definitionAnnotation.host());
+    if (StringUtils.isNotEmpty(definitionAnnotation.basePath())) {
+      swaggerGenerator.setBasePath(definitionAnnotation.basePath());
+    }
+    if (StringUtils.isNotEmpty(definitionAnnotation.host())) {
+      swagger.setHost(definitionAnnotation.host());
+    }
 
-    convertConsumes(definitionAnnotation, swagger);
-    convertProduces(definitionAnnotation, swagger);
+    SwaggerUtils.setConsumes(swagger, definitionAnnotation.consumes());
+    SwaggerUtils.setProduces(swagger, definitionAnnotation.produces());
     convertSchemes(definitionAnnotation, swagger);
     convertTags(definitionAnnotation, swagger);
     convertInfo(definitionAnnotation.info(), swagger);
@@ -62,8 +72,12 @@ public class SwaggerDefinitionProcessor implements ClassAnnotationProcessor {
 
     info.setTitle(infoAnnotation.title());
     info.setVersion(infoAnnotation.version());
-    info.setDescription(infoAnnotation.description());
-    info.setTermsOfService(infoAnnotation.termsOfService());
+    if (StringUtils.isNotEmpty(infoAnnotation.description())) {
+      info.setDescription(infoAnnotation.description());
+    }
+    if (StringUtils.isNotEmpty(infoAnnotation.termsOfService())) {
+      info.setTermsOfService(infoAnnotation.termsOfService());
+    }
     info.setContact(convertContact(infoAnnotation.contact()));
     info.setLicense(convertLicense(infoAnnotation.license()));
     info.getVendorExtensions().putAll(BaseReaderUtils.parseExtensions(infoAnnotation.extensions()));
@@ -74,8 +88,16 @@ public class SwaggerDefinitionProcessor implements ClassAnnotationProcessor {
   private License convertLicense(io.swagger.annotations.License licenseAnnotation) {
     License license = new License();
 
-    license.setName(licenseAnnotation.name());
-    license.setUrl(licenseAnnotation.url());
+    if (StringUtils.isNotEmpty(licenseAnnotation.name())) {
+      license.setName(licenseAnnotation.name());
+    }
+    if (StringUtils.isNotEmpty(licenseAnnotation.url())) {
+      license.setUrl(licenseAnnotation.url());
+    }
+
+    if (StringUtils.isEmpty(license.getName()) && StringUtils.isEmpty(license.getUrl())) {
+      return null;
+    }
 
     return license;
   }
@@ -83,9 +105,21 @@ public class SwaggerDefinitionProcessor implements ClassAnnotationProcessor {
   private Contact convertContact(io.swagger.annotations.Contact contactAnnotation) {
     Contact contact = new Contact();
 
-    contact.setName(contactAnnotation.name());
-    contact.setUrl(contactAnnotation.url());
-    contact.setEmail(contactAnnotation.email());
+    if (StringUtils.isNotEmpty(contactAnnotation.name())) {
+      contact.setName(contactAnnotation.name());
+    }
+    if (StringUtils.isNotEmpty(contactAnnotation.url())) {
+      contact.setUrl(contactAnnotation.url());
+    }
+    if (StringUtils.isNotEmpty(contactAnnotation.email())) {
+      contact.setEmail(contactAnnotation.email());
+    }
+
+    if (StringUtils.isEmpty(contact.getName()) &&
+        StringUtils.isEmpty(contact.getUrl()) &&
+        StringUtils.isEmpty(contact.getEmail())) {
+      return null;
+    }
 
     return contact;
   }
@@ -118,8 +152,17 @@ public class SwaggerDefinitionProcessor implements ClassAnnotationProcessor {
 
   private ExternalDocs convertExternalDocs(io.swagger.annotations.ExternalDocs annotationExternalDocs) {
     ExternalDocs externalDocs = new ExternalDocs();
-    externalDocs.setUrl(annotationExternalDocs.url());
-    externalDocs.setDescription(annotationExternalDocs.value());
+
+    if (StringUtils.isNotEmpty(annotationExternalDocs.url())) {
+      externalDocs.setUrl(annotationExternalDocs.url());
+    }
+    if (StringUtils.isNotEmpty(annotationExternalDocs.value())) {
+      externalDocs.setDescription(annotationExternalDocs.value());
+    }
+
+    if (StringUtils.isEmpty(externalDocs.getUrl()) && StringUtils.isEmpty(externalDocs.getDescription())) {
+      return null;
+    }
 
     return externalDocs;
   }
@@ -140,29 +183,5 @@ public class SwaggerDefinitionProcessor implements ClassAnnotationProcessor {
       return Scheme.HTTP;
     }
     return Scheme.forValue(annotationScheme.name());
-  }
-
-  private void convertProduces(SwaggerDefinition definitionAnnotation, Swagger swagger) {
-    String[] produces = definitionAnnotation.produces();
-    if (produces == null) {
-      return;
-    }
-    List<String> produceList = Arrays.stream(produces).filter(s -> !StringUtils.isEmpty(s))
-        .collect(Collectors.toList());
-    if (!produceList.isEmpty()) {
-      swagger.setProduces(produceList);
-    }
-  }
-
-  private void convertConsumes(SwaggerDefinition definitionAnnotation, Swagger swagger) {
-    String[] consumes = definitionAnnotation.consumes();
-    if (consumes == null) {
-      return;
-    }
-    List<String> consumeList = Arrays.stream(consumes).filter(s -> !StringUtils.isEmpty(s))
-        .collect(Collectors.toList());
-    if (!consumeList.isEmpty()) {
-      swagger.setConsumes(consumeList);
-    }
   }
 }

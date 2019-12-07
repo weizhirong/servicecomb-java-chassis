@@ -23,9 +23,7 @@ import org.apache.servicecomb.swagger.invocation.SwaggerInvocation;
 import org.apache.servicecomb.swagger.invocation.arguments.ArgumentMapper;
 
 /**
- * 将契约参数转为producer原型
- * 比如契约原型是         int add(int x, int y)
- * 而producer原型是int add(HttpRequest request, int x, int y)
+ * map swagger arguments to producer arguments
  */
 public class ProducerArgumentsMapper {
   private List<ArgumentMapper> producerArgMapperList;

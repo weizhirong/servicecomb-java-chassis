@@ -18,12 +18,14 @@ package org.apache.servicecomb.swagger.engine;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.servicecomb.foundation.common.utils.SPIServiceUtils;
+import org.apache.servicecomb.swagger.generator.core.model.SwaggerOperation;
 import org.apache.servicecomb.swagger.invocation.AsyncResponse;
 import org.apache.servicecomb.swagger.invocation.Response;
 import org.apache.servicecomb.swagger.invocation.SwaggerInvocation;
@@ -40,8 +42,6 @@ import org.slf4j.LoggerFactory;
 public class SwaggerProducerOperation {
   private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerProducerOperation.class);
 
-  private String name;
-
   // 因为存在aop场景，所以，producerClass不一定等于producerInstance.getClass()
   private Class<?> producerClass;
 
@@ -49,7 +49,12 @@ public class SwaggerProducerOperation {
 
   private Method producerMethod;
 
-  private Method swaggerMethod;
+  private SwaggerOperation swaggerOperation;
+
+  // swagger parameter types relate to producer
+  // because features of @BeanParam/query wrapper/rpc mode parameter wrapper
+  // types is not direct equals to producerMethod parameter types
+  private Type[] swaggerParameterTypes;
 
   private ProducerArgumentsMapper argumentsMapper;
 
@@ -58,12 +63,8 @@ public class SwaggerProducerOperation {
   private List<ProducerInvokeExtension> producerInvokeExtenstionList =
       SPIServiceUtils.getSortedService(ProducerInvokeExtension.class);
 
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
+  public String getOperationId() {
+    return swaggerOperation.getOperationId();
   }
 
   public Class<?> getProducerClass() {
@@ -90,12 +91,20 @@ public class SwaggerProducerOperation {
     this.producerMethod = producerMethod;
   }
 
-  public Method getSwaggerMethod() {
-    return swaggerMethod;
+  public SwaggerOperation getSwaggerOperation() {
+    return swaggerOperation;
   }
 
-  public void setSwaggerMethod(Method swaggerMethod) {
-    this.swaggerMethod = swaggerMethod;
+  public void setSwaggerOperation(SwaggerOperation swaggerOperation) {
+    this.swaggerOperation = swaggerOperation;
+  }
+
+  public Type[] getSwaggerParameterTypes() {
+    return swaggerParameterTypes;
+  }
+
+  public void setSwaggerParameterTypes(Type[] swaggerParameterTypes) {
+    this.swaggerParameterTypes = swaggerParameterTypes;
   }
 
   public ProducerArgumentsMapper getArgumentsMapper() {

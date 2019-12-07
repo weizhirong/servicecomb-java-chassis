@@ -16,55 +16,77 @@
  */
 package org.apache.servicecomb.swagger.generator.core.processor.response;
 
+import static org.apache.servicecomb.swagger.generator.SwaggerGeneratorUtils.findResponseTypeProcessor;
+
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
-import io.swagger.util.ReflectionUtils;
-import org.apache.servicecomb.swagger.generator.core.OperationGenerator;
-import org.apache.servicecomb.swagger.generator.core.ResponseTypeProcessor;
-import org.apache.servicecomb.swagger.generator.core.utils.ParamUtils;
+import javax.servlet.http.Part;
+
+import org.apache.servicecomb.swagger.SwaggerUtils;
+import org.apache.servicecomb.swagger.generator.OperationGenerator;
+import org.apache.servicecomb.swagger.generator.ResponseTypeProcessor;
+import org.apache.servicecomb.swagger.generator.SwaggerGenerator;
 
 import io.swagger.converter.ModelConverters;
 import io.swagger.models.Model;
 import io.swagger.models.properties.Property;
 import io.swagger.models.utils.PropertyModelConverter;
+import io.swagger.util.ReflectionUtils;
 
 public class DefaultResponseTypeProcessor implements ResponseTypeProcessor {
+  protected boolean extractActualType;
+
   @Override
-  public Class<?> getResponseType() {
+  public Type getProcessType() {
     // not care for this.
     return null;
   }
 
   @Override
-  public Model process(OperationGenerator operationGenerator, Type genericResponseType) {
+  public Type extractResponseType(SwaggerGenerator swaggerGenerator, OperationGenerator operationGenerator,
+      Type genericResponseType) {
+    if (extractActualType) {
+      genericResponseType = ((ParameterizedType) genericResponseType).getActualTypeArguments()[0];
+    }
+
+    return doExtractResponseType(genericResponseType);
+  }
+
+  private Type doExtractResponseType(Type genericResponseType) {
     if (!(genericResponseType instanceof ParameterizedType)) {
-      return doProcess(operationGenerator, genericResponseType);
+      return genericResponseType;
     }
 
     // eg:
     //   genericResponseType is CompletableFuture<ResponseEntity<String>>
     //   responseType is ResponseEntity<String>
     //   responseRawType is ResponseEntity
-    Type responseType = ((ParameterizedType) genericResponseType).getActualTypeArguments()[0];
-    Type responseRawType = responseType;
-    if (responseType instanceof ParameterizedType) {
-      responseRawType = ((ParameterizedType) responseType).getRawType();
+    Type responseRawType = genericResponseType;
+    if (genericResponseType instanceof ParameterizedType) {
+      responseRawType = ((ParameterizedType) genericResponseType).getRawType();
     }
 
-    ResponseTypeProcessor processor = operationGenerator.getContext().findResponseTypeProcessor(responseRawType);
-    if (responseRawType.equals(processor.getResponseType())) {
-      return processor.process(operationGenerator, responseType);
+    ResponseTypeProcessor processor = findResponseTypeProcessor(responseRawType);
+    if (responseRawType.equals(processor.getProcessType())) {
+      return processor.extractResponseType(genericResponseType);
     }
 
-    return doProcess(operationGenerator, genericResponseType);
+    return genericResponseType;
   }
 
-  protected Model doProcess(OperationGenerator operationGenerator, Type responseType) {
-    if (ReflectionUtils.isVoid(responseType)) {
+  @Override
+  public Model process(SwaggerGenerator swaggerGenerator, OperationGenerator operationGenerator,
+      Type genericResponseType) {
+    Type responseType = extractResponseType(swaggerGenerator, operationGenerator, genericResponseType);
+    if (responseType == null || ReflectionUtils.isVoid(responseType)) {
       return null;
     }
-    ParamUtils.addDefinitions(operationGenerator.getSwagger(), responseType);
+
+    if (responseType instanceof Class && Part.class.isAssignableFrom((Class<?>) responseType)) {
+      responseType = Part.class;
+    }
+    SwaggerUtils.addDefinitions(swaggerGenerator.getSwagger(), responseType);
     Property property = ModelConverters.getInstance().readAsProperty(responseType);
     return new PropertyModelConverter().propertyToModel(property);
   }

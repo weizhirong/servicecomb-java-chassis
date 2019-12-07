@@ -29,7 +29,7 @@ public interface DefinitionConst {
 
   String DEFAULT_APPLICATION_ID = "default";
 
-  String DEFAULT_MICROSERVICE_VERSION = "1.0.0";
+  String DEFAULT_MICROSERVICE_VERSION = "1.0.0.0";
 
   String DEFAULT_STAGE = "prod";
 
@@ -39,5 +39,5 @@ public interface DefinitionConst {
 
   String VERSION_RULE_LATEST = "latest";
 
-  String VERSION_RULE_ALL = "0.0.0+";
+  String VERSION_RULE_ALL = "0.0.0.0+";
 }

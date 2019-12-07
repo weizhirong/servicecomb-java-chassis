@@ -18,6 +18,7 @@
 package org.apache.servicecomb.serviceregistry.registry;
 
 import org.apache.servicecomb.config.archaius.sources.MicroserviceConfigLoader;
+import org.apache.servicecomb.foundation.common.event.SimpleEventBus;
 import org.apache.servicecomb.serviceregistry.ServiceRegistry;
 import org.apache.servicecomb.serviceregistry.client.LocalServiceRegistryClientImpl;
 import org.apache.servicecomb.serviceregistry.config.ServiceRegistryConfig;
@@ -58,13 +59,17 @@ public final class ServiceRegistryFactory {
   }
 
   public static ServiceRegistry createLocal() {
-    EventBus eventBus = new EventBus();
+    return createLocal(System.getProperty(LocalServiceRegistryClientImpl.LOCAL_REGISTRY_FILE_KEY));
+  }
+
+  public static ServiceRegistry createLocal(String localFile) {
+    EventBus eventBus = new SimpleEventBus();
     ServiceRegistryConfig serviceRegistryConfig = ServiceRegistryConfig.INSTANCE;
     MicroserviceConfigLoader loader = new MicroserviceConfigLoader();
     loader.loadAndSort();
 
     MicroserviceDefinition microserviceDefinition = new MicroserviceDefinition(loader.getConfigModels());
-    return new LocalServiceRegistry(eventBus, serviceRegistryConfig, microserviceDefinition);
+    return new LocalServiceRegistry(eventBus, serviceRegistryConfig, microserviceDefinition).localFile(localFile);
   }
 
   public static ServiceRegistry create(EventBus eventBus, ServiceRegistryConfig serviceRegistryConfig,

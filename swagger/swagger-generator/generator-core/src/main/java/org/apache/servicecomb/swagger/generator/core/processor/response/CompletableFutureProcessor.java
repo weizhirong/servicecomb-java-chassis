@@ -17,22 +17,15 @@
 
 package org.apache.servicecomb.swagger.generator.core.processor.response;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.concurrent.CompletableFuture;
 
-import org.apache.servicecomb.swagger.generator.core.OperationGenerator;
-
-import io.swagger.models.Model;
-
 public class CompletableFutureProcessor extends DefaultResponseTypeProcessor {
-  @Override
-  public Class<?> getResponseType() {
-    return CompletableFuture.class;
+  public CompletableFutureProcessor() {
+    extractActualType = true;
   }
 
   @Override
-  protected Model doProcess(OperationGenerator operationGenerator, Type genericResponseType) {
-    return super.doProcess(operationGenerator, ((ParameterizedType) genericResponseType).getActualTypeArguments()[0]);
+  public Class<?> getProcessType() {
+    return CompletableFuture.class;
   }
 }

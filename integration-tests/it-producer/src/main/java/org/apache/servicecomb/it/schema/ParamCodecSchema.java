@@ -19,11 +19,13 @@ package org.apache.servicecomb.it.schema;
 
 import java.util.Map;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
 
 import org.apache.servicecomb.foundation.test.scaffolding.model.Media;
 import org.apache.servicecomb.provider.rest.common.RestSchema;
@@ -38,8 +40,15 @@ public class ParamCodecSchema {
   @Path("spaceCharCodec/{pathVal}")
   @GET
   public String spaceCharCodec(@PathParam("pathVal") String pathVal, @QueryParam("q") String q) {
-    String expectedParamString = "a%2B+%20b%% %20c";
-    return pathVal + " +%20%% " + q + " " + (expectedParamString.equals(pathVal) && expectedParamString.equals(q));
+    String expectedPathParamString = "a%2B+%20b%% %20c";
+    String expectedParamStringQuery = "a%2B %20b%% %20c";
+    return pathVal + " +%20%% " + q + " " + (expectedPathParamString.equals(pathVal)
+        && matchOr(q, expectedPathParamString, expectedParamStringQuery));
+  }
+
+  private boolean matchOr(String result, String expected1, String expected2) {
+    // spring mvc & rpc handles "+' differently, both '+' or ' ' is correct according to HTTP SPEC. spring mvc changed from '+' to ' ' since spring 5.
+    return result.equals(expected1) || result.equals(expected2);
   }
 
   /**
@@ -55,5 +64,12 @@ public class ParamCodecSchema {
   @GET
   public Map<String, String> getInvocationContext() {
     return ContextUtils.getInvocationContext().getContext();
+  }
+
+  @Path("stringUrlencodedForm")
+  @Consumes(value = MediaType.APPLICATION_FORM_URLENCODED)
+  @POST
+  public Map<String, String> stringUrlencodedForm(Map<String, String> requestMap) {
+    return requestMap;
   }
 }

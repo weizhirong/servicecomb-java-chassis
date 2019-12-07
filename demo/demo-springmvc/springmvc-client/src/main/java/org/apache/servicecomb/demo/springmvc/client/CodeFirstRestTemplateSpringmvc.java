@@ -37,7 +37,6 @@ import org.apache.servicecomb.provider.pojo.Invoker;
 import org.apache.servicecomb.provider.springmvc.reference.CseHttpEntity;
 import org.apache.servicecomb.serviceregistry.RegistryUtils;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.PathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -52,11 +51,11 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class CodeFirstRestTemplateSpringmvc extends CodeFirstRestTemplate {
   interface UploadPartAndFile {
-    String fileUpload(Part file1, File file2);
+    String fileUpload(Part file1, File someFile);
   }
 
   interface UploadStreamAndResource {
-    String fileUpload(InputStream file1, Resource file2);
+    String fileUpload(InputStream file1, Resource someFile);
   }
 
   private UploadPartAndFile uploadPartAndFile = Invoker.createProxy("springmvc", "codeFirst", UploadPartAndFile.class);
@@ -117,6 +116,8 @@ public class CodeFirstRestTemplateSpringmvc extends CodeFirstRestTemplate {
     super.testAllTransport(microserviceName, template, cseUrlPrefix);
   }
 
+  @SuppressWarnings("deprecation")
+// TODO : upgrade to spring 5 will having warning's , we'll fix it later
   private void testUpload(RestTemplate template, String cseUrlPrefix) throws IOException {
     String file1Content = "hello world";
     File file1 = File.createTempFile("测 试", ".txt");
@@ -143,7 +144,7 @@ public class CodeFirstRestTemplateSpringmvc extends CodeFirstRestTemplate {
 
     result = template.postForObject(
         cseUrlPrefix + "/upload1",
-        new HttpEntity<>(map),
+        new HttpEntity<MultiValueMap<String, Object>>(map),
         String.class);
 
     result = uploadPartAndFile.fileUpload(new FilePart(null, file1), someFile);
@@ -158,7 +159,7 @@ public class CodeFirstRestTemplateSpringmvc extends CodeFirstRestTemplate {
         file2Content);
     result = uploadStreamAndResource
         .fileUpload(new ByteArrayInputStream(file1Content.getBytes(StandardCharsets.UTF_8)),
-            new PathResource(someFile.getAbsolutePath()));
+            new org.springframework.core.io.PathResource(someFile.getAbsolutePath()));
     TestMgr.check(expect, result);
   }
 
@@ -169,7 +170,7 @@ public class CodeFirstRestTemplateSpringmvc extends CodeFirstRestTemplate {
 
     return template.postForObject(
         cseUrlPrefix + "/upload",
-        new HttpEntity<>(map),
+        new HttpEntity<MultiValueMap<String, Object>>(map),
         String.class);
   }
 

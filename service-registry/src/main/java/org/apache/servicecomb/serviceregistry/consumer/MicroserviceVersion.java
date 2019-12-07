@@ -17,27 +17,81 @@
 
 package org.apache.servicecomb.serviceregistry.consumer;
 
-import org.apache.servicecomb.serviceregistry.RegistryUtils;
+import java.util.Collection;
+import java.util.List;
+
+import org.apache.servicecomb.foundation.common.VendorExtensions;
 import org.apache.servicecomb.serviceregistry.api.registry.Microservice;
+import org.apache.servicecomb.serviceregistry.api.registry.MicroserviceInstance;
+import org.apache.servicecomb.serviceregistry.event.CreateMicroserviceVersionEvent;
+import org.apache.servicecomb.serviceregistry.event.DestroyMicroserviceVersionEvent;
 import org.apache.servicecomb.serviceregistry.version.Version;
 
 public class MicroserviceVersion {
+  protected AppManager appManager;
+
+  protected MicroserviceVersions microserviceVersions;
+
+  // because of cross app invoke
+  // microserviceName not always equals microservice.serviceName
+  protected String microserviceName;
+
   protected Version version;
 
   protected Microservice microservice;
 
-  public MicroserviceVersion(String microserviceId) {
-    microservice = RegistryUtils.getServiceRegistry().getAggregatedRemoteMicroservice(microserviceId);
+  protected Collection<MicroserviceInstance> instances;
+
+  private VendorExtensions vendorExtensions = new VendorExtensions();
+
+  public MicroserviceVersion(MicroserviceVersions microserviceVersions, String microserviceId,
+      String microserviceName,
+      Collection<MicroserviceInstance> instances) {
+    Microservice microservice = microserviceVersions
+        .getAppManager()
+        .getServiceRegistry()
+        .getAggregatedRemoteMicroservice(microserviceId);
     if (microservice == null) {
-      throw new IllegalStateException(String.format("Invalid microserviceId %s.", microserviceId));
+      throw new IllegalStateException(
+          String.format("failed to query by microserviceId '%s' from ServiceCenter.", microserviceId));
     }
 
+    init(microserviceVersions, microservice, microserviceName, instances);
+    appManager.getEventBus().post(new CreateMicroserviceVersionEvent(this));
+  }
+
+  public MicroserviceVersion(MicroserviceVersions microserviceVersions,
+      Microservice microservice, String microserviceName,
+      Collection<MicroserviceInstance> instances) {
+    init(microserviceVersions, microservice, microserviceName, instances);
+    appManager.getEventBus().post(new CreateMicroserviceVersionEvent(this));
+  }
+
+  protected void init(MicroserviceVersions microserviceVersions, Microservice microservice,
+      String microserviceName,
+      Collection<MicroserviceInstance> instances) {
+    this.appManager = microserviceVersions.getAppManager();
+    this.microserviceVersions = microserviceVersions;
+    this.microservice = microservice;
+    this.microserviceName = microserviceName;
+    this.instances = instances;
     this.version = new Version(microservice.getVersion());
   }
 
-  public MicroserviceVersion(Microservice microservice) {
-    this.microservice = microservice;
-    this.version = new Version(microservice.getVersion());
+  public MicroserviceVersions getMicroserviceVersions() {
+    return microserviceVersions;
+  }
+
+  public Collection<MicroserviceInstance> getInstances() {
+    return instances;
+  }
+
+  public void setInstances(List<MicroserviceInstance> instances) {
+    this.instances = instances;
+  }
+
+  public String getMicroserviceName() {
+    return microserviceName;
   }
 
   public String getMicroserviceId() {
@@ -52,6 +106,11 @@ public class MicroserviceVersion {
     return version;
   }
 
+  public VendorExtensions getVendorExtensions() {
+    return vendorExtensions;
+  }
+
   public void destroy() {
+    appManager.getEventBus().post(new DestroyMicroserviceVersionEvent(this));
   }
 }

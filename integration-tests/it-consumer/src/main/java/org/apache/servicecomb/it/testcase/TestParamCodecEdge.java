@@ -18,26 +18,44 @@
 package org.apache.servicecomb.it.testcase;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
-import java.util.Map;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Scanner;
 
-import org.apache.servicecomb.core.Const;
+import javax.ws.rs.core.MediaType;
+
 import org.apache.servicecomb.foundation.test.scaffolding.model.Media;
 import org.apache.servicecomb.it.extend.engine.GateRestTemplate;
+import org.apache.servicecomb.it.junit.ITJUnitUtils;
+import org.junit.Assert;
 import org.junit.Test;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestParamCodecEdge {
+  private static final Logger LOGGER = LoggerFactory.getLogger(TestParamCodecEdge.class);
+
   static GateRestTemplate client = GateRestTemplate.createEdgeRestTemplate("paramCodec");
 
   @Test
   public void spaceCharEncode() {
     String paramString = "a%2B+%20b%% %20c";
+    String paramQueryStringResult = "a%2B %20b%% %20c";
     String result = client.getForObject("/spaceCharCodec/" + paramString + "?q=" + paramString, String.class);
-    assertEquals(paramString + " +%20%% " + paramString + " true", result);
+    assertEquals(matchOr(result, paramString + " +%20%% " + paramQueryStringResult + " true",
+        paramString + " +%20%% " + paramString + " true"), result);
+  }
+
+  private String matchOr(String result, String expected1, String expected2) {
+    // spring mvc & rpc handles "+' differently, both '+' or ' ' is correct according to HTTP SPEC. spring mvc changed from '+' to ' ' since spring 5.
+    if (result.equals(expected1)) {
+      return expected1;
+    }
+    return expected2;
   }
 
   @Test
@@ -55,14 +73,33 @@ public class TestParamCodecEdge {
   }
 
   @Test
-  public void testInvocationContext() {
-    HttpHeaders headers = new HttpHeaders();
-    headers.add(Const.CSE_CONTEXT, "{\"testKey\":\"testValue\",\"allowInherit\":\"allowPassValue\"}");
-    HttpEntity<Object> requestEntity = new HttpEntity<>(headers);
-    Map<?, ?> resultContext = client.exchange("/invocationContext", HttpMethod.GET, requestEntity, Map.class).getBody();
-    assertEquals(resultContext.toString(), 3, resultContext.size());
-    assertEquals("it-edge", resultContext.get("x-cse-src-microservice"));
-    assertEquals("allowPassValue", resultContext.get("allowInherit"));
-    assertNotNull(resultContext.get("X-B3-TraceId"));
+  public void testStringUrlEncodedForm() throws IOException {
+    String requestUri = client.getUrlPrefix() + "/stringUrlencodedForm";
+    URL url = new URL(requestUri);
+    HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
+    httpConnection.setDoOutput(true);
+    httpConnection.setRequestMethod("POST");
+    httpConnection.setRequestProperty("Content-Type", MediaType.APPLICATION_FORM_URLENCODED);
+    httpConnection.setUseCaches(false);
+    httpConnection.connect();
+    try (DataOutputStream dataOutputStream = new DataOutputStream(httpConnection.getOutputStream())) {
+      dataOutputStream.writeBytes("A=aaa&B=ddd");
+      dataOutputStream.flush();
+    } catch (IOException e) {
+      LOGGER.error("failed to write buffer!", e);
+      fail("failed to write buffer!");
+      return;
+    }
+
+    StringBuilder responseBody = new StringBuilder();
+    try (Scanner scanner = new Scanner(httpConnection.getInputStream())) {
+      while (scanner.hasNextLine()) {
+        responseBody.append(scanner.nextLine());
+      }
+    }
+    Assert.assertEquals("{\"A\":\"aaa\",\"B\":\"ddd\",\"param0\":\"" + ITJUnitUtils.getProducerName() + "\","
+            + "\"param1\":\"v1\",\"param2\":\"paramCodec/stringUrlencodedForm\"}",
+        responseBody.toString());
+    Assert.assertEquals(200, httpConnection.getResponseCode());
   }
 }

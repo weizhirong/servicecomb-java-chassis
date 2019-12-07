@@ -19,10 +19,14 @@ package org.apache.servicecomb.swagger.extend;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.servicecomb.foundation.common.exceptions.ServiceCombException;
 import org.apache.servicecomb.foundation.common.utils.SPIServiceUtils;
 import org.apache.servicecomb.swagger.converter.property.StringPropertyConverter;
@@ -32,7 +36,8 @@ import org.apache.servicecomb.swagger.extend.property.creator.InputStreamPropert
 import org.apache.servicecomb.swagger.extend.property.creator.PartPropertyCreator;
 import org.apache.servicecomb.swagger.extend.property.creator.PropertyCreator;
 import org.apache.servicecomb.swagger.extend.property.creator.ShortPropertyCreator;
-import org.springframework.util.StringUtils;
+import org.apache.servicecomb.swagger.generator.SwaggerConst;
+import org.apache.servicecomb.swagger.generator.SwaggerGeneratorFeature;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,6 +56,8 @@ public class ModelResolverExt extends ModelResolver {
 
   private static ObjectMapper objectMapper;
 
+  private Set<Type> concreteInterfaces = new HashSet<>();
+
   public ModelResolverExt() {
     super(findMapper());
 
@@ -59,7 +66,11 @@ public class ModelResolverExt extends ModelResolver {
     addPropertyCreator(new ByteArrayPropertyCreator());
     addPropertyCreator(new InputStreamPropertyCreator());
     addPropertyCreator(new PartPropertyCreator());
-    loadPropertyCreators();
+
+    SPIServiceUtils.getAllService(PropertyCreator.class)
+        .forEach(this::addPropertyCreator);
+    SPIServiceUtils.getAllService(ConcreteTypeRegister.class)
+        .forEach(r -> r.register(concreteInterfaces));
   }
 
   private static ObjectMapper findMapper() {
@@ -83,21 +94,19 @@ public class ModelResolverExt extends ModelResolver {
     }
   }
 
-  private void loadPropertyCreators() {
-    SPIServiceUtils.getAllService(PropertyCreator.class)
-        .forEach(this::addPropertyCreator);
-  }
-
   @VisibleForTesting
   protected void setType(JavaType type, Map<String, Object> vendorExtensions) {
-    vendorExtensions.put(ExtendConst.EXT_JAVA_CLASS, type.toCanonical());
+    if (SwaggerGeneratorFeature.isLocalExtJavaClassInVendor()) {
+      vendorExtensions.put(SwaggerConst.EXT_JAVA_CLASS, type.toCanonical());
+    }
   }
 
   private void checkType(JavaType type) {
     // 原子类型/string在java中是abstract的
     if (type.getRawClass().isPrimitive()
         || propertyCreatorMap.containsKey(type.getRawClass())
-        || String.class.equals(type.getRawClass())) {
+        || String.class.equals(type.getRawClass())
+        || concreteInterfaces.contains(type.getRawClass())) {
       return;
     }
 
@@ -156,7 +165,7 @@ public class ModelResolverExt extends ModelResolver {
     }
 
     Property property = super.resolveProperty(propType, context, annotations, next);
-    if (property instanceof StringProperty) {
+    if (StringProperty.class.isInstance(property)) {
       if (StringPropertyConverter.isEnum((StringProperty) property)) {
         setType(propType, property.getVendorExtensions());
       }

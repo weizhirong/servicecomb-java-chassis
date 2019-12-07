@@ -20,43 +20,34 @@ package org.apache.servicecomb.serviceregistry.consumer;
 import java.util.Map;
 
 import org.apache.servicecomb.foundation.common.concurrent.ConcurrentHashMapEx;
-import org.apache.servicecomb.serviceregistry.config.ServiceRegistryConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.servicecomb.serviceregistry.ServiceRegistry;
+import org.apache.servicecomb.serviceregistry.api.response.MicroserviceInstanceChangedEvent;
+import org.apache.servicecomb.serviceregistry.task.event.SafeModeChangeEvent;
 
 import com.google.common.eventbus.EventBus;
 
 public class AppManager {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(AppManager.class);
-
-  private EventBus eventBus;
-
-  private MicroserviceVersionFactory microserviceVersionFactory = new DefaultMicroserviceVersionFactory();
+  private ServiceRegistry serviceRegistry;
 
   // key: appId
   private Map<String, MicroserviceManager> apps = new ConcurrentHashMapEx<>();
 
-  private volatile StaticMicroserviceVersionFactory staticMicroserviceVersionFactory;
+  public AppManager(ServiceRegistry serviceRegistry) {
+    this.serviceRegistry = serviceRegistry;
 
-  public AppManager(EventBus eventBus) {
-    this.eventBus = eventBus;
+    getEventBus().register(this);
+  }
+
+  public ServiceRegistry getServiceRegistry() {
+    return serviceRegistry;
   }
 
   public EventBus getEventBus() {
-    return eventBus;
-  }
-
-  public MicroserviceVersionFactory getMicroserviceVersionFactory() {
-    return microserviceVersionFactory;
+    return serviceRegistry.getEventBus();
   }
 
   public Map<String, MicroserviceManager> getApps() {
     return apps;
-  }
-
-  public void setMicroserviceVersionFactory(MicroserviceVersionFactory microserviceVersionFactory) {
-    this.microserviceVersionFactory = microserviceVersionFactory;
   }
 
   // microserviceName maybe normal name or alias name
@@ -76,32 +67,22 @@ public class AppManager {
     return microserviceManager.getOrCreateMicroserviceVersions(microserviceName);
   }
 
-  public StaticMicroserviceVersionFactory getStaticMicroserviceVersionFactory() {
-    if (null == staticMicroserviceVersionFactory) {
-      synchronized (this) {
-        if (null == staticMicroserviceVersionFactory) {
-          loadStaticMicroserviceVersionFactory();
-        }
-      }
+  public void onMicroserviceInstanceChanged(MicroserviceInstanceChangedEvent changedEvent) {
+    MicroserviceManager microserviceManager = apps.get(changedEvent.getKey().getAppId());
+    if (microserviceManager == null) {
+      return;
     }
-    return staticMicroserviceVersionFactory;
+
+    microserviceManager.onMicroserviceInstanceChanged(changedEvent);
   }
 
-  public void setStaticMicroserviceVersionFactory(StaticMicroserviceVersionFactory staticMicroserviceVersionFactory) {
-    this.staticMicroserviceVersionFactory = staticMicroserviceVersionFactory;
+  public void onSafeModeChanged(SafeModeChangeEvent modeChangeEvent) {
+    apps.values().forEach(microserviceManager -> microserviceManager.onSafeModeChanged(modeChangeEvent));
   }
 
-  private void loadStaticMicroserviceVersionFactory() {
-    String staticMicroserviceVersionFactoryClass = ServiceRegistryConfig.INSTANCE
-        .getStaticMicroserviceVersionFactory();
-    try {
-      staticMicroserviceVersionFactory = (StaticMicroserviceVersionFactory) Class
-          .forName(staticMicroserviceVersionFactoryClass).newInstance();
-    } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-      LOGGER.info("unable to load StaticMicroserviceVersionFactory", e);
-      // interrupt this loading process because this error cannot be covered by us.
-      throw new IllegalStateException("unable to load StaticMicroserviceVersionFactory", e);
+  public void pullInstances() {
+    for (MicroserviceManager microserviceManager : apps.values()) {
+      microserviceManager.pullInstances();
     }
-    LOGGER.info("staticMicroserviceVersionFactory is {}.", staticMicroserviceVersionFactoryClass);
   }
 }

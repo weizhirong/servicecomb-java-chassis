@@ -32,17 +32,18 @@
 
   <properties>
     <!-- Dependency versions -->
-    <apache-commons.version>3.7</apache-commons.version>
     <archaius.version>0.7.6</archaius.version>
     <asciidoctorj.version>1.6.2</asciidoctorj.version>
     <aspectj.version>1.9.3</aspectj.version>
     <awaitility.version>3.0.0</awaitility.version>
+    <assertj.version>3.11.1</assertj.version>
     <brave.version>5.6.0</brave.version>
     <classmate.version>1.5.0</classmate.version>
     <commons-beanutils.version>1.9.3</commons-beanutils.version>
     <commons-configuration.version>1.10</commons-configuration.version>
     <commons-io.version>2.6</commons-io.version>
     <commons-lang.version>2.6</commons-lang.version>
+    <commons-lang3.version>3.9</commons-lang3.version>
     <commons-logging.version>1.2</commons-logging.version>
     <cxf.version>3.3.1</cxf.version>
     <dyuproject-protostuff.version>1.0.7.fixed.3500</dyuproject-protostuff.version>
@@ -70,7 +71,7 @@
     <javax-servlet.version>4.0.1</javax-servlet.version>
     <javax-transaction.version>1.2</javax-transaction.version>
     <javax-validation.version>2.0.1.Final</javax-validation.version>
-    <javax-ws-rs.version>2.0.1</javax-ws-rs.version>
+    <javax-ws-rs.version>2.1</javax-ws-rs.version>
     <jedis.version>2.9.0</jedis.version>
     <jersey.version>2.27</jersey.version>
     <jettison.version>1.4.0</jettison.version>
@@ -99,9 +100,10 @@
     <slf4j.version>1.7.26</slf4j.version>
     <snakeyaml.version>1.24</snakeyaml.version>
     <spectator.version>0.83.0</spectator.version>
-    <spring.version>4.3.20.RELEASE</spring.version>
-    <spring-boot.version>1.5.19.RELEASE</spring-boot.version>
-    <spring-cloud.version>Edgware.SR3</spring-cloud.version>     <!-- Spring Zuul handling of gzip response has bug in version Dalston.SR1 -->
+    <spring.version>5.1.5.RELEASE</spring.version>
+    <spring-boot.version>2.1.6.RELEASE</spring-boot.version>
+    <spring-cloud.version>Greenwich.RELEASE</spring-cloud.version>
+    <spring-data.version>2.0.9.RELEASE</spring-data.version>
     <stax2-api.version>4.2</stax2-api.version>
     <swagger.version>1.5.22</swagger.version>
     <swagger2markup.version>1.3.3</swagger2markup.version>
@@ -113,6 +115,8 @@
     <zipkin.version>2.19.1</zipkin.version>
     <zipkin-reporter.version>2.7.13</zipkin-reporter.version>
     <zookeeper.version>3.4.14</zookeeper.version>
+    <nacos-client.version>1.1.4</nacos-client.version>
+
     <!-- Base dir of main -->
     <main.basedir>${basedir}/../..</main.basedir>
   </properties>
@@ -260,12 +264,8 @@
         <version>${guava.version}</version>
         <exclusions>
           <exclusion>
-            <groupId>com.google.errorprone</groupId>
-            <artifactId>error_prone_annotations</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>animal-sniffer-annotations</artifactId>
+            <groupId>*</groupId>
+            <artifactId>*</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -274,6 +274,12 @@
         <groupId>com.google.inject</groupId>
         <artifactId>guice</artifactId>
         <version>${guice.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>aopalliance</groupId>
+            <artifactId>aopalliance</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <dependency>
@@ -524,7 +530,7 @@
         <artifactId>rxnetty</artifactId>
         <version>${rxnetty.version}</version>
         <exclusions>
-          <!-- alreadly in io.netty-all -->
+          <!-- already in io.netty-all -->
           <exclusion>
             <groupId>io.netty</groupId>
             <artifactId>netty-codec-http</artifactId>
@@ -719,7 +725,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>${apache-commons.version}</version>
+        <version>${commons-lang3.version}</version>
       </dependency>
 
       <dependency>
@@ -810,10 +816,22 @@
       </dependency>
 
       <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
         <groupId>org.codehaus.jettison</groupId>
         <artifactId>jettison</artifactId>
         <version>${jettison.version}</version>
         <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.data</groupId>
+        <artifactId>spring-data-commons</artifactId>
+        <version>${spring-data.version}</version>
       </dependency>
 
       <dependency>
@@ -1210,46 +1228,6 @@
       </dependency>
       <dependency>
         <groupId>org.apache.servicecomb</groupId>
-        <artifactId>spring-boot-starter-configuration</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.servicecomb</groupId>
-        <artifactId>spring-boot-starter-discovery</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.servicecomb</groupId>
-        <artifactId>spring-boot-starter-provider</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.servicecomb</groupId>
-        <artifactId>spring-boot-starter-registry</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.servicecomb</groupId>
-        <artifactId>spring-boot-starter-servicecomb</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.servicecomb</groupId>
-        <artifactId>spring-boot-starter-transport</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.servicecomb</groupId>
-        <artifactId>spring-cloud-zuul</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.servicecomb</groupId>
-        <artifactId>spring-cloud-zuul-zipkin</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.servicecomb</groupId>
         <artifactId>swagger-generator-core</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -1261,6 +1239,11 @@
       <dependency>
         <groupId>org.apache.servicecomb</groupId>
         <artifactId>swagger-generator-springmvc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.servicecomb</groupId>
+        <artifactId>swagger-generator-spring-data</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -1300,11 +1283,6 @@
       </dependency>
       <dependency>
         <groupId>org.apache.servicecomb</groupId>
-        <artifactId>transport-highway</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.servicecomb</groupId>
         <artifactId>transport-rest-client</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -1331,13 +1309,13 @@
       </dependency>
       <dependency>
         <groupId>org.apache.servicecomb.archetypes</groupId>
-        <artifactId>business-service-spring-boot-starter-archetype</artifactId>
+        <artifactId>business-service-springmvc-archetype</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.servicecomb.archetypes</groupId>
-        <artifactId>business-service-springmvc-archetype</artifactId>
-        <version>${project.version}</version>
+        <groupId>com.alibaba.nacos</groupId>
+        <artifactId>nacos-client</artifactId>
+        <version>${nacos-client.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

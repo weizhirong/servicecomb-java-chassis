@@ -128,6 +128,10 @@
     </dependency>
     <dependency>
       <groupId>org.apache.servicecomb</groupId>
+      <artifactId>swagger-generator-spring-data</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.servicecomb</groupId>
       <artifactId>swagger-invocation-core</artifactId>
     </dependency>
     <dependency>
@@ -157,30 +161,6 @@
     <dependency>
       <groupId>org.apache.servicecomb</groupId>
       <artifactId>provider-springmvc</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.servicecomb</groupId>
-      <artifactId>transport-highway</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.servicecomb</groupId>
-      <artifactId>spring-boot-starter-configuration</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.servicecomb</groupId>
-      <artifactId>spring-boot-starter-provider</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.servicecomb</groupId>
-      <artifactId>spring-boot-starter-transport</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.servicecomb</groupId>
-      <artifactId>spring-boot-starter-discovery</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.servicecomb</groupId>
-      <artifactId>spring-boot-starter-registry</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.servicecomb</groupId>

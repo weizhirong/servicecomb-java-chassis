@@ -19,6 +19,8 @@ package org.apache.servicecomb.core.provider.consumer;
 
 import org.apache.servicecomb.core.Invocation;
 import org.apache.servicecomb.core.SCBEngine;
+import org.apache.servicecomb.core.definition.MicroserviceMeta;
+import org.apache.servicecomb.core.definition.OperationMeta;
 import org.apache.servicecomb.core.definition.SchemaMeta;
 import org.apache.servicecomb.core.invocation.InvocationFactory;
 import org.apache.servicecomb.swagger.invocation.AsyncResponse;
@@ -32,16 +34,21 @@ import org.slf4j.LoggerFactory;
 public final class InvokerUtils {
   private static final Logger LOGGER = LoggerFactory.getLogger(InvokerUtils.class);
 
-  public static Object syncInvoke(String microserviceName, String schemaId, String operationName, Object[] args) {
-    ReferenceConfig referenceConfig = SCBEngine.getInstance().getReferenceConfigForInvoke(microserviceName);
-    return syncInvoke(generateInvocation(schemaId, operationName, args, referenceConfig));
+  public static Object syncInvoke(String microserviceName, String schemaId, String operationId, Object[] args) {
+    return syncInvoke(microserviceName, null, null, schemaId, operationId, args);
   }
 
   public static Object syncInvoke(String microserviceName, String microserviceVersion, String transport,
-      String schemaId, String operationName, Object[] args) {
-    ReferenceConfig referenceConfig = SCBEngine.getInstance()
-        .createReferenceConfigForInvoke(microserviceName, microserviceVersion, transport);
-    return syncInvoke(generateInvocation(schemaId, operationName, args, referenceConfig));
+      String schemaId, String operationId, Object[] args) {
+    MicroserviceReferenceConfig microserviceReferenceConfig = SCBEngine.getInstance()
+        .createMicroserviceReferenceConfig(microserviceName, microserviceVersion);
+    MicroserviceMeta microserviceMeta = microserviceReferenceConfig.getLatestMicroserviceMeta();
+    SchemaMeta schemaMeta = microserviceMeta.ensureFindSchemaMeta(schemaId);
+    OperationMeta operationMeta = schemaMeta.ensureFindOperation(operationId);
+
+    ReferenceConfig referenceConfig = microserviceReferenceConfig.createReferenceConfig(transport, operationMeta);
+    Invocation invocation = InvocationFactory.forConsumer(referenceConfig, operationMeta, args);
+    return syncInvoke(invocation);
   }
 
   /**
@@ -80,6 +87,8 @@ public final class InvokerUtils {
       String msg =
           String.format("invoke failed, %s", invocation.getOperationMeta().getMicroserviceQualifiedName());
       LOGGER.error(msg, e);
+      LOGGER.error("invocation type: {}, handler chain: {}", invocation.getInvocationType(),
+          invocation.getHandlerChain());
 
       Response response = Response.createConsumerFail(e);
       invocation.onFinish(response);
@@ -119,12 +128,6 @@ public final class InvokerUtils {
       LOGGER.error("invoke failed, {}", invocation.getOperationMeta().getMicroserviceQualifiedName());
       asyncResp.handle(response);
     }
-  }
-
-  private static Invocation generateInvocation(String schemaId, String operationName, Object[] args,
-      ReferenceConfig referenceConfig) {
-    SchemaMeta schemaMeta = referenceConfig.getMicroserviceMeta().ensureFindSchemaMeta(schemaId);
-    return InvocationFactory.forConsumer(referenceConfig, schemaMeta, operationName, args);
   }
 
   @Deprecated

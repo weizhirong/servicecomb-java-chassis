@@ -27,6 +27,81 @@ consumes:
 produces:
 - "application/json"
 paths:
+  /ignoreRequest:
+    post:
+      operationId: "ignoreRequest"
+      parameters:
+      - in: "body"
+        name: "value"
+        required: false
+        schema:
+          $ref: "#/definitions/ignoreRequestBody"
+      responses:
+        "200":
+          description: "response of 200"
+  /nestedListString:
+    post:
+      operationId: "nestedListString"
+      parameters:
+      - in: "body"
+        name: "param"
+        required: false
+        schema:
+          $ref: "#/definitions/nestedListStringBody"
+      responses:
+        "200":
+          description: "response of 200"
+          schema:
+            type: "array"
+            items:
+              type: "array"
+              items:
+                type: "string"
+  /part:
+    post:
+      operationId: "part"
+      consumes:
+      - "multipart/form-data"
+      parameters:
+      - name: "part"
+        in: "formData"
+        required: false
+        type: "file"
+      responses:
+        "200":
+          description: "response of 200"
+  /partArray:
+    post:
+      operationId: "partArray"
+      consumes:
+      - "multipart/form-data"
+      parameters:
+      - name: "part"
+        in: "formData"
+        required: false
+        type: "array"
+        items:
+          type: "file"
+        collectionFormat: "multi"
+      responses:
+        "200":
+          description: "response of 200"
+  /partList:
+    post:
+      operationId: "partList"
+      consumes:
+      - "multipart/form-data"
+      parameters:
+      - name: "part"
+        in: "formData"
+        required: false
+        type: "array"
+        items:
+          type: "file"
+        collectionFormat: "multi"
+      responses:
+        "200":
+          description: "response of 200"
   /testAllType:
     post:
       operationId: "testAllType"
@@ -271,6 +346,18 @@ paths:
       responses:
         "200":
           description: "response of 200"
+  /testOneEnum:
+    post:
+      operationId: "testOneEnum"
+      parameters:
+      - in: "body"
+        name: "color"
+        required: false
+        schema:
+          $ref: "#/definitions/testOneEnumBody"
+      responses:
+        "200":
+          description: "response of 200"
   /testOptional:
     post:
       operationId: "testOptional"
@@ -434,7 +521,34 @@ paths:
       responses:
         "200":
           description: "response of 200"
+  /wrapToBodyWithDesc:
+    post:
+      operationId: "wrapToBodyWithDesc"
+      parameters:
+      - in: "body"
+        name: "value"
+        required: false
+        schema:
+          $ref: "#/definitions/wrapToBodyWithDescBody"
+      responses:
+        "200":
+          description: "response of 200"
 definitions:
+  ignoreRequestBody:
+    type: "object"
+    properties:
+      value:
+        type: "integer"
+        format: "int32"
+  nestedListStringBody:
+    type: "object"
+    properties:
+      param:
+        type: "array"
+        items:
+          type: "array"
+          items:
+            type: "string"
   AllType:
     type: "object"
     properties:
@@ -667,6 +781,16 @@ definitions:
         additionalProperties:
           $ref: "#/definitions/User"
     x-java-class: "gen.cse.ms.ut.testMultiParamBody"
+  testOneEnumBody:
+    type: "object"
+    properties:
+      color:
+        type: "string"
+        enum:
+        - "RED"
+        - "YELLOW"
+        - "BLUE"
+        x-java-class: "org.apache.servicecomb.foundation.test.scaffolding.model.Color"
   testSetBody:
     type: "object"
     properties:
@@ -738,3 +862,10 @@ definitions:
       value:
         type: "integer"
         format: "int16"
+  wrapToBodyWithDescBody:
+    type: "object"
+    properties:
+      value:
+        type: "integer"
+        format: "int32"
+        description: "desc"

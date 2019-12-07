@@ -30,9 +30,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.servicecomb.foundation.vertx.AsyncResultCallback;
 import org.apache.servicecomb.serviceregistry.api.registry.Microservice;
 import org.apache.servicecomb.serviceregistry.api.registry.MicroserviceInstance;
+import org.apache.servicecomb.serviceregistry.api.registry.MicroserviceInstanceStatus;
 import org.apache.servicecomb.serviceregistry.api.registry.ServiceCenterConfig;
 import org.apache.servicecomb.serviceregistry.api.registry.ServiceCenterInfo;
 import org.apache.servicecomb.serviceregistry.api.response.FindInstancesResponse;
@@ -47,7 +49,6 @@ import org.apache.servicecomb.serviceregistry.version.VersionRuleUtils;
 import org.apache.servicecomb.serviceregistry.version.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
 import com.google.common.base.Charsets;
@@ -57,8 +58,6 @@ public class LocalServiceRegistryClientImpl implements ServiceRegistryClient {
   private static final Logger LOGGER = LoggerFactory.getLogger(LocalServiceRegistryClientImpl.class);
 
   public static final String LOCAL_REGISTRY_FILE_KEY = "local.registry.file";
-
-  private final String LOCAL_REGISTRY_FILE = System.getProperty(LOCAL_REGISTRY_FILE_KEY);
 
   // key is microservice id
   private Map<String, Microservice> microserviceIdMap = new ConcurrentHashMap<>();
@@ -70,12 +69,16 @@ public class LocalServiceRegistryClientImpl implements ServiceRegistryClient {
   private AtomicInteger revision = new AtomicInteger(0);
 
   public LocalServiceRegistryClientImpl() {
-    if (StringUtils.isEmpty(LOCAL_REGISTRY_FILE)) {
+    this(System.getProperty(LOCAL_REGISTRY_FILE_KEY));
+  }
+
+  public LocalServiceRegistryClientImpl(String localFile) {
+    if (StringUtils.isEmpty(localFile)) {
       LOGGER.info("create empty local registry.");
       return;
     }
 
-    InputStream is = this.getClass().getClassLoader().getResourceAsStream(LOCAL_REGISTRY_FILE);
+    InputStream is = this.getClass().getClassLoader().getResourceAsStream(localFile);
     if (is == null) {
       return;
     }
@@ -428,5 +431,33 @@ public class LocalServiceRegistryClientImpl implements ServiceRegistryClient {
     info.setApiVersion("4.0.0");
     info.setConfig(new ServiceCenterConfig());
     return info;
+  }
+
+  @Override
+  public boolean undateMicroserviceInstanceStatus(String microserviceId, String microserviceInstanceId, String status) {
+    Map<String, MicroserviceInstance> instanceMap = microserviceInstanceMap.get(microserviceId);
+    if (instanceMap == null) {
+      throw new IllegalArgumentException("Invalid serviceId, serviceId=" + microserviceId);
+    }
+
+    MicroserviceInstance microserviceInstance = instanceMap.get(microserviceInstanceId);
+    if (microserviceInstance == null) {
+      throw new IllegalArgumentException(
+              String.format("Invalid argument. microserviceId=%s, microserviceInstanceId=%s.",
+                      microserviceId,
+                      microserviceInstanceId));
+    }
+    MicroserviceInstanceStatus instanceStatus;
+    try {
+      instanceStatus = MicroserviceInstanceStatus.valueOf(status);
+    }
+    catch (IllegalArgumentException e){
+      throw new IllegalArgumentException("Invalid status.");
+    }
+    if (null != instanceStatus) {
+      microserviceInstance.setStatus(instanceStatus);
+      return true;
+    }
+    return false;
   }
 }

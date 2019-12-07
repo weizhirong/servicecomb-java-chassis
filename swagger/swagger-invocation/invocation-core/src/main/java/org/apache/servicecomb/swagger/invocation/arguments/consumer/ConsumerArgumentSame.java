@@ -19,32 +19,23 @@ package org.apache.servicecomb.swagger.invocation.arguments.consumer;
 
 import org.apache.servicecomb.swagger.invocation.SwaggerInvocation;
 import org.apache.servicecomb.swagger.invocation.arguments.ArgumentMapper;
-import org.apache.servicecomb.swagger.invocation.converter.Converter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class ConsumerArgumentSame implements ArgumentMapper {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ConsumerArgumentSame.class);
-
   private int consumerIdx;
 
   private int swaggerIdx;
 
-  private Converter converter;
-
-  public ConsumerArgumentSame(int consumerIdx, int swaggerIdx, Converter converter) {
+  public ConsumerArgumentSame(int consumerIdx, int swaggerIdx) {
     this.consumerIdx = consumerIdx;
     this.swaggerIdx = swaggerIdx;
-    this.converter = converter;
+  }
+
+  public boolean isSameIndex() {
+    return swaggerIdx == consumerIdx;
   }
 
   @Override
   public void mapArgument(SwaggerInvocation invocation, Object[] consumerArguments) {
-    if (null == consumerArguments[consumerIdx]) {
-      LOGGER.debug("null argument is ignored, consumerIdx = [{}]", consumerIdx);
-      return;
-    }
-    Object swaggerParam = converter.convert(consumerArguments[consumerIdx]);
-    invocation.setSwaggerArgument(swaggerIdx, swaggerParam);
+    invocation.setSwaggerArgument(swaggerIdx, consumerArguments[consumerIdx]);
   }
 }

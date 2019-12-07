@@ -21,13 +21,20 @@ import java.util.Collections;
 
 import org.apache.servicecomb.serviceregistry.MockMicroserviceVersions;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestMicroserviceVersionRuleRange {
-  MockMicroserviceVersions mockMicroserviceVersions = new MockMicroserviceVersions();
+  MockMicroserviceVersions mockMicroserviceVersions;
 
-  MicroserviceVersionRule microserviceVersionRule = mockMicroserviceVersions
-      .getOrCreateMicroserviceVersionRule("2.0.0-4.0.0");
+  MicroserviceVersionRule microserviceVersionRule;
+
+  @Before
+  public void setup() {
+    mockMicroserviceVersions = new MockMicroserviceVersions();
+    microserviceVersionRule = mockMicroserviceVersions
+        .getOrCreateMicroserviceVersionRule("2.0.0-4.0.0");
+  }
 
   @Test
   public void getVersionRule() {

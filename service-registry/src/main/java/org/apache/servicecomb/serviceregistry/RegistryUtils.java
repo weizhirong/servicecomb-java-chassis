@@ -58,6 +58,10 @@ public final class RegistryUtils {
   }
 
   public static void init() {
+    if (serviceRegistry != null) {
+      return;
+    }
+
     MicroserviceConfigLoader loader = ConfigUtil.getMicroserviceConfigLoader();
     MicroserviceDefinition microserviceDefinition = new MicroserviceDefinition(loader.getConfigModels());
     serviceRegistry =
@@ -99,7 +103,7 @@ public final class RegistryUtils {
   }
 
   public static String getAppId() {
-    return serviceRegistry.getMicroservice().getAppId();
+    return serviceRegistry.getAppId();
   }
 
   public static Microservice getMicroservice() {
